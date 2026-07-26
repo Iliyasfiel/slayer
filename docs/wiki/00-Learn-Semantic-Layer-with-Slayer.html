@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SLayer 语义层学习手册 · 从 MCP 到 DB</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a;
+  --bg-2: #111c33;
+  --panel: #1a2541;
+  --panel-2: #22304f;
+  --border: #2c3a5e;
+  --text: #e6edf7;
+  --muted: #8ea0c1;
+  --accent: #7dd3fc;
+  --accent-2: #f0abfc;
+  --green: #86efac;
+  --yellow: #fcd34d;
+  --red: #fca5a5;
+  --code-bg: #0b1226;
+  --link: #93c5fd;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: linear-gradient(180deg, #0a0f1f 0%, #0f172a 100%);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static !important; height: auto !important; }
+}
+.sidebar {
+  background: #0a0f1f;
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.sidebar h1 {
+  font-size: 18px;
+  margin: 0 0 4px 0;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+}
+.sidebar .sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+.sidebar .group {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin: 16px 0 6px 4px;
+}
+.sidebar a {
+  display: block;
+  padding: 6px 10px;
+  margin: 2px 0;
+  border-radius: 6px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13.5px;
+  transition: background 0.15s;
+}
+.sidebar a:hover { background: var(--panel); color: var(--accent); }
+.sidebar a.active { background: var(--panel-2); color: var(--accent); }
+.main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 36px 80px;
+  width: 100%;
+}
+.hero {
+  background: radial-gradient(ellipse at top left, rgba(125, 211, 252, 0.12), transparent 60%),
+              radial-gradient(ellipse at bottom right, rgba(240, 171, 252, 0.10), transparent 60%),
+              var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 32px;
+  margin-bottom: 36px;
+}
+.hero h1 {
+  font-size: 32px;
+  margin: 0 0 8px 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero .lead { color: var(--muted); font-size: 15.5px; margin: 0 0 18px 0; }
+.hero .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.badge {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(125, 211, 252, 0.1);
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  color: var(--accent);
+}
+h2 {
+  font-size: 24px;
+  margin: 56px 0 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--accent);
+}
+h3 { font-size: 19px; margin: 32px 0 12px; color: var(--text); }
+h4 { font-size: 16px; margin: 22px 0 8px; color: var(--green); }
+p { margin: 0 0 14px; }
+.lead { color: var(--muted); font-size: 14.5px; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin: 16px 0;
+}
+.card.gold { border-left: 3px solid var(--yellow); }
+.card.green { border-left: 3px solid var(--green); }
+.card.blue { border-left: 3px solid var(--accent); }
+.card.pink { border-left: 3px solid var(--accent-2); }
+.card h4 { margin-top: 0; }
+.card ul { margin: 6px 0 0; padding-left: 20px; }
+.card li { margin: 4px 0; }
+
+.code {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 12px 0;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+.code .kw { color: #f0abfc; }
+.code .str { color: #86efac; }
+.code .com { color: #64748b; font-style: italic; }
+.code .var { color: #fcd34d; }
+.code .num { color: #93c5fd; }
+.code .fn { color: #7dd3fc; }
+
+.mermaid {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  margin: 18px 0;
+  text-align: center;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 14px;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--panel-2); color: var(--accent); }
+td code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; font-size: 12.5px; }
+
+.note {
+  background: rgba(252, 211, 77, 0.08);
+  border: 1px solid rgba(252, 211, 77, 0.3);
+  border-left: 3px solid var(--yellow);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.note strong { color: var(--yellow); }
+
+.tip {
+  background: rgba(125, 211, 252, 0.08);
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.tip strong { color: var(--accent); }
+
+.callout {
+  background: rgba(134, 239, 172, 0.08);
+  border: 1px solid rgba(134, 239, 172, 0.3);
+  border-left: 3px solid var(--green);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.callout strong { color: var(--green); }
+
+.layer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+.layer .item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.layer .item .name { color: var(--accent); font-weight: 600; font-size: 14px; }
+.layer .item .desc { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+
+.step-list { counter-reset: step; padding-left: 0; list-style: none; }
+.step-list li {
+  counter-increment: step;
+  position: relative;
+  padding: 14px 16px 14px 56px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.step-list li::before {
+  content: counter(step);
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #0a0f1f;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.step-list li b { color: var(--accent); }
+
+a.code-link { color: var(--link); text-decoration: none; border-bottom: 1px dashed var(--link); }
+a.code-link:hover { color: var(--accent-2); border-color: var(--accent-2); }
+
+footer {
+  margin-top: 60px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.section { animation: fadeIn 0.4s ease; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <h1>SLayer 语义层</h1>
+  <div class="sub">从 MCP 到 DB 的学习手册</div>
+
+  <div class="group">入门</div>
+  <a href="#intro">什么是语义层？</a>
+  <a href="#why-slayer">为什么需要 SLayer？</a>
+  <a href="#quick-example">一个查询的例子</a>
+
+  <div class="group">架构</div>
+  <a href="#architecture">整体分层架构</a>
+  <a href="#data-chain">MCP → DB 数据链</a>
+  <a href="#mcp-server">MCP 服务端</a>
+
+  <div class="group">核心数据模型</div>
+  <a href="#core-models">领域模型一览</a>
+  <a href="#slayer-model">SlayerModel 详解</a>
+  <a href="#slayer-query">SlayerQuery 详解</a>
+  <a href="#reference-modes">Mode A / Mode B 引用</a>
+
+  <div class="group">查询生命周期</div>
+  <a href="#lifecycle">完整生命周期</a>
+  <a href="#normalization">归一化与 DAG 排序</a>
+  <a href="#enrichment">富化 (Enrich)</a>
+  <a href="#sql-gen">SQL 生成</a>
+  <a href="#rls">行级安全 (RLS)</a>
+  <a href="#execution">执行与缓存</a>
+
+  <div class="group">周边系统</div>
+  <a href="#storage">存储后端</a>
+  <a href="#dialects">多方言策略</a>
+  <a href="#search">搜索与记忆</a>
+  <a href="#interfaces">多接口暴露</a>
+  <a href="#ingestion">自动建模</a>
+
+  <div class="group">附录</div>
+  <a href="#glossary">术语表</a>
+  <a href="#code-map">代码地图</a>
+</aside>
+
+<main class="main">
+
+<!-- ============ HERO ============ -->
+<section id="intro" class="section">
+<div class="hero">
+  <h1>SLayer 语义层学习手册</h1>
+  <p class="lead">
+    这份教程面向<strong>初学语义层（Semantic Layer）</strong>的开发者，以开源项目
+    <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer">SLayer</a>
+    为案例，从最朴素的"什么是语义层"出发，逐步拆解整个项目代码结构，
+    重点讲清楚<strong>一条查询是如何从 MCP 客户端一路走到数据库的</strong>。
+  </p>
+  <div class="badges">
+    <span class="badge">Pydantic v2</span>
+    <span class="badge">sqlglot AST</span>
+    <span class="badge">SQLAlchemy 2.0</span>
+    <span class="badge">MCP stdio / SSE</span>
+    <span class="badge">8+ 数据库方言</span>
+    <span class="badge">async-first</span>
+  </div>
+</div>
+
+<h2>1. 什么是语义层？</h2>
+<p>
+  <b>语义层（Semantic Layer）</b>是位于<em>原始数据库</em>与<em>使用者（BI 工具、Agent、应用）</em>
+  之间的一层"领域模型翻译器"。它的核心任务是：
+</p>
+
+<div class="card gold">
+  <h4>把"业务意图"翻译成"数据库 SQL"</h4>
+  <ul>
+    <li><b>业务侧</b>只关心"我想看销售额、按地区分组、上个月的数据"——这是<b>意图</b>。</li>
+    <li><b>数据库侧</b>只懂"SELECT … FROM … WHERE … GROUP BY …"——这是<b>实现</b>。</li>
+    <li><b>语义层</b>在中间架一座桥：定义统一的<b>度量（Measure）</b>和<b>维度（Dimension）</b>，
+        把意图映射到不同方言的 SQL。</li>
+  </ul>
+</div>
+
+<p>语义层通常要做这些事：</p>
+<div class="layer">
+  <div class="item">
+    <div class="name">1. 元数据管理</div>
+    <div class="desc">定义"什么表、什么列、什么指标"是业务可见的。</div>
+  </div>
+  <div class="item">
+    <div class="name">2. 查询转译</div>
+    <div class="desc">把"我要 revenue:sum"翻译成具体方言的 <code>SUM()</code>。</div>
+  </div>
+  <div class="item">
+    <div class="name">3. 连接解析</div>
+    <div class="desc">自动决定多表之间怎么 JOIN、按什么键。</div>
+  </div>
+  <div class="item">
+    <div class="name">4. 访问控制</div>
+    <div class="desc">透明地注入"行级安全（RLS）"的 WHERE 谓词。</div>
+  </div>
+  <div class="item">
+    <div class="name">5. 多接口暴露</div>
+    <div class="desc">同一份模型通过 REST/MCP/BI 网关等服务出去。</div>
+  </div>
+</div>
+
+<h3 id="why-slayer">为什么选 SLayer？</h3>
+<p>
+  SLayer 是 MotleyAI 开源的<strong>轻量、Agent 优先</strong>的语义层。
+  跟 Cube / dbt Semantic Layer 不同的是：
+</p>
+<table>
+  <tr><th>特性</th><th>SLayer</th><th>传统语义层</th></tr>
+  <tr><td>运行时编辑模型</td><td>支持（无 build）</td><td>需要 build / refresh</td></tr>
+  <tr><td>查询时聚合</td><td>同一个列可 <code>:sum / :avg / :count</code></td><td>度量需预定义</td></tr>
+  <tr><td>跨数据库</td><td>同一模型跨 PG/MySQL/ClickHouse/…</td><td>通常绑死一种</td></tr>
+  <tr><td>接口</td><td>MCP / REST / Flight SQL / pg-wire</td><td>通常只有 SQL / REST</td></tr>
+  <tr><td>依赖</td><td>单 Python 进程</td><td>常需独立服务</td></tr>
+</table>
+
+<h3 id="quick-example">一个查询的例子</h3>
+<p>想了解"上个月各状态订单数"——你只需要给 SLayer 这样的<b>结构化描述</b>：</p>
+
+<div class="code">
+<span class="com"># 自然语言版：上个月各状态订单数</span>
+{
+  <span class="str">"source_model"</span>: <span class="str">"orders"</span>,
+  <span class="str">"measures"</span>:    [{<span class="str">"formula"</span>: <span class="str">"*:count"</span>}],
+  <span class="str">"dimensions"</span>:  [<span class="str">"status"</span>],
+  <span class="str">"time_dimensions"</span>: [{
+    <span class="str">"dimension"</span>:  <span class="str">"ordered_at"</span>,
+    <span class="str">"granularity"</span>: <span class="str">"month"</span>,
+    <span class="str">"date_range"</span>:  [<span class="str">"2026-06-01"</span>, <span class="str">"2026-06-30"</span>]
+  }]
+}</div>
+
+<p>SLayer 会自动产出针对目标数据库方言的 SQL：</p>
+<div class="code">
+<span class="kw">SELECT</span>
+  <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, orders.ordered_at) <span class="kw">AS</span> orders.ordered_at_month,
+  orders.status <span class="kw">AS</span> orders.status,
+  <span class="fn">COUNT</span>(*) <span class="kw">AS</span> orders._count
+<span class="kw">FROM</span> main.orders <span class="kw">AS</span> orders
+<span class="kw">WHERE</span> orders.ordered_at <span class="kw">BETWEEN</span> <span class="str">'2026-06-01'</span> <span class="kw">AND</span> <span class="str">'2026-06-30'</span>
+<span class="kw">GROUP BY</span> <span class="num">1</span>, <span class="num">2</span>
+<span class="kw">ORDER BY</span> <span class="num">1</span></div>
+
+<p>你不需要写任何 SQL、不需要关心底层是 Postgres 还是 SQLite——这就是<b>语义层</b>的承诺。</p>
+</section>
+
+<!-- ============ ARCHITECTURE ============ -->
+<section id="architecture" class="section">
+<h2>2. 整体分层架构</h2>
+<p>SLayer 是一个清晰分层的项目，从外到内可以理解为"6 层洋葱"：</p>
+
+<div class="mermaid">
+flowchart TB
+    subgraph SUR["对外接口 (Surface)"]
+        direction LR
+        CLI[CLI]
+        REST[REST API]
+        MCP["MCP server"]
+        FLT["Flight SQL<br/>(port 5144)"]
+        PG["pg-wire<br/>(port 5145)"]
+        PY[Python Client]
+    end
+
+    subgraph SVC["服务编排 (Service)"]
+        INSP[Inspect]
+        MEM[Memories]
+        SRC[Search]
+    end
+
+    subgraph ENG["引擎 (Engine)"]
+        QE["SlayerQueryEngine<br/>execute()"]
+        ENR["enrich_query"]
+        GEN["SQLGenerator"]
+        POL["apply_session_policy<br/>(RLS)"]
+        CCH["QueryCache"]
+        EXE["SlayerSQLClient"]
+    end
+
+    subgraph CORE["领域模型 (core/)"]
+        MOD["SlayerModel<br/>Column / Measure / Join"]
+        Q["SlayerQuery<br/>query.py"]
+        FOR["formula.py<br/>Python AST 解析"]
+        POL2["SessionPolicy<br/>policy.py"]
+    end
+
+    subgraph SQL["SQL 生成 (sql/)"]
+        DLG["dialects/<br/>策略模式"]
+        CLI2[client.py<br/>异步驱动]
+        FAC[engine_factory]
+    end
+
+    subgraph STG["存储 (storage/)"]
+        YAML["YAMLStorage"]
+        SQL3["SQLiteStorage"]
+        MIG["migrations v1→v7"]
+    end
+
+    SUR --> SVC
+    SVC --> ENG
+    ENG --> CORE
+    ENG --> SQL
+    ENG --> STG
+    ENG --> POL
+    SQL --> EXT[("Postgres/MySQL/<br/>ClickHouse/SQLite/<br/>DuckDB/Snowflake/<br/>BigQuery/SQL Server")]
+    STG --> FS[("models.yaml / .db")]
+</div>
+
+<p>每一层有明确职责：</p>
+<table>
+  <tr><th>层</th><th>职责</th><th>关键文件</th></tr>
+  <tr><td>Surface</td><td>把外部协议（HTTP/MCP/stdio）翻译成内部 <code>SlayerQuery</code></td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/mcp/server.py">mcp/server.py</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/api/server.py">api/server.py</a></td></tr>
+  <tr><td>Service</td><td>不直接查询的辅助能力：模型渲染、记忆、搜索</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/inspect/service.py">inspect/service.py</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/memories/service.py">memories/service.py</a></td></tr>
+  <tr><td>Engine</td><td>编排整个查询流水线</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/query_engine.py">engine/query_engine.py</a></td></tr>
+  <tr><td>Core</td><td>Pydantic 数据模型 + Python AST 公式解析</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/models.py">core/models.py</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/query.py">core/query.py</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/formula.py">core/formula.py</a></td></tr>
+  <tr><td>SQL</td><td>方言策略 + 异步驱动 + 工厂</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/sql/generator.py">sql/generator.py</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/sql/dialects/">sql/dialects/</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/sql/client.py">sql/client.py</a></td></tr>
+  <tr><td>Storage</td><td>YAML / SQLite 持久化、版本迁移、嵌入</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/storage/base.py">storage/base.py</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/storage/yaml_storage.py">yaml_storage.py</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/storage/sqlite_storage.py">sqlite_storage.py</a></td></tr>
+</table>
+
+<div class="callout">
+  <strong>设计哲学：</strong>所有 Surface 最终都构造一个 <code>SlayerQueryEngine</code>（或 <code>SlayerClient</code>），
+  然后委派给它。换句话说，<em>一份核心、多套外衣</em>。
+</div>
+</section>
+
+<!-- ============ DATA CHAIN ============ -->
+<section id="data-chain" class="section">
+<h2>3. 完整数据链：MCP → DB</h2>
+<p>这是本文的核心。让我们追踪一次 MCP 工具调用从进入到返回的<strong>完整路径</strong>。</p>
+
+<div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Agent as AI Agent / Claude
+    participant MCPServer as MCP Server<br/>(FastMCP)
+    participant Engine as SlayerQueryEngine
+    participant Storage as StorageBackend<br/>(YAML/SQLite)
+    participant Enrich as enrich_query
+    participant Gen as SQLGenerator
+    participant Policy as apply_session_policy
+    participant Client as SlayerSQLClient
+    participant Engine2 as SQLAlchemy Engine
+    participant DB as Target Database
+
+    Agent->>MCPServer: tools/call "query"<br/>(source_model, measures, dims, ...)
+    Note over MCPServer: 1) 接收 MCP 工具参数
+    MCPServer->>MCPServer: 构造 SlayerQuery<br/>(Pydantic model_validate)
+    MCPServer->>Engine: await engine.execute(query)
+    Engine->>Engine: _normalize_input<br/>(dict/list/str → SlayerQuery)
+    Engine->>Engine: _topologically_order_queries<br/>(多 stage 时 Kahn 排序)
+    Engine->>Storage: get_model(source_model)
+    Storage-->>Engine: SlayerModel (含 columns, joins, measures)
+    Engine->>Enrich: enrich_query(query, model, named_queries)
+    Note over Enrich: 2) 解析 measure / dimension / time_dim<br/>处理 transform / cross-model / filter AST
+    Enrich-->>Engine: EnrichedQuery
+    Engine->>Gen: generator.generate(enriched)
+    Note over Gen: 3) AST 化构建 SQL<br/>委托 dialect.build_xxx()
+    Gen-->>Engine: final_sql
+    Engine->>Policy: apply_session_policy(sql, policy)
+    Note over Policy: 4) RLS 重写<br/>物理表 FROM t → FROM (SELECT * FROM t WHERE …) t
+    Policy-->>Engine: sql (tenant-scoped)
+    Engine->>Client: client.execute(sql)
+    Client->>Engine2: sa.text(sql)
+    Engine2->>DB: 异步执行 (asyncpg/aiomysql/duckdb)
+    DB-->>Engine2: rows
+    Engine2-->>Client: Row 列表
+    Client-->>Engine: rows
+    Engine->>Engine: 包装 SlayerResponse<br/>(data, sql, attributes, runtime_ms)
+    Engine-->>MCPServer: SlayerResponse
+    MCPServer->>MCPServer: _format_output<br/>(markdown/json/csv)
+    MCPServer-->>Agent: TextContent result</div>
+
+<p>用更精简的"漏斗图"再画一遍：</p>
+
+<div class="mermaid">
+flowchart LR
+    A["🧑 Agent<br/>自然语言"] -->|MCP tool call| B["MCP Server<br/>slayer/mcp/server.py"]
+    B -->|"SlayerQuery<br/>(dict)"| C["Engine.execute()<br/>slayer/engine/query_engine.py"]
+    C --> D["resolve_model<br/>storage.get_model"]
+    D --> E["enrich_query<br/>engine/enrichment.py"]
+    E -->|"EnrichedQuery<br/>(含 SQL AST)"| F["SQLGenerator<br/>sql/generator.py"]
+    F -->|"原始 SQL"| G["apply_session_policy<br/>sql/session_policy.py"]
+    G -->|"租户级 SQL"| H["SlayerSQLClient<br/>sql/client.py"]
+    H -->|"SQLAlchemy 异步驱动"| I[("目标数据库<br/>PG/MySQL/ClickHouse/...")]
+    I -->|"rows"| H
+    H --> C
+    C --> J["SlayerResponse<br/>(data, sql, attributes)"]
+    J --> B
+    B -->|"markdown/json"| A
+</div>
+
+<h3>8 步精简版</h3>
+<ol class="step-list">
+  <li><b>MCP 接收：</b>FastMCP 收到 <code>query(...)</code> 工具调用，把参数打包成 dict。</li>
+  <li><b>类型校验：</b><code>SlayerQuery.model_validate(data)</code> 校验输入并自动 Pydantic 化。</li>
+  <li><b>引擎入口：</b><code>await engine.execute(query, ...)</code> 触发核心流水线。</li>
+  <li><b>归一化 & 排序：</b>把 dict / list / str 统一成 <code>SlayerQuery</code>；多 stage 时 Kahn 拓扑排序。</li>
+  <li><b>模型解析：</b>从 <code>StorageBackend</code> 取 <code>SlayerModel</code>，把跨模型引用连成 JOIN 图。</li>
+  <li><b>富化 (Enrich)：</b>把"revenue:sum"这种字符串解析成完整 SQL 表达式树；处理 transform、跨模型度量、distinct dedup。</li>
+  <li><b>生成 SQL：</b><code>SQLGenerator</code> 用 sqlglot AST 构建最终 SQL，委托给具体方言。</li>
+  <li><b>执行：</b><code>SlayerSQLClient</code> 通过 SQLAlchemy 异步驱动执行 SQL 并返回行。</li>
+</ol>
+</section>
+
+<!-- ============ MCP SERVER ============ -->
+<section id="mcp-server" class="section">
+<h2>4. 深入 MCP 服务端</h2>
+<p>
+  <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/mcp/server.py">slayer/mcp/server.py</a> 是 Agent 接触最多的入口。
+  它在 <code>create_mcp_server(storage, ...)</code> 工厂里用 <code>FastMCP</code> 注册了一组工具：
+</p>
+
+<div class="mermaid">
+flowchart TB
+    M["FastMCP('SLayer')"] --> T1["query<br/>(单阶段)"]
+    M --> T2["query_nested<br/>(多阶段 DAG)"]
+    M --> T3["models_summary<br/>inspect<br/>inspect_model"]
+    M --> T4["create_model<br/>edit_model<br/>delete_model"]
+    M --> T5["create_datasource<br/>list_datasources<br/>describe_datasource<br/>edit_datasource<br/>delete_datasource"]
+    M --> T6["ingest_datasource_models<br/>validate_models<br/>recommend_root_model"]
+    M --> T7["save_memory<br/>forget_memory<br/>search"]
+    M --> T8["set_datasource_priority<br/>get_datasource_priority"]
+    T1 --> ENG["SlayerQueryEngine<br/>(共享实例)"]
+    T2 --> ENG
+    T3 --> ENG
+    T4 --> STO["StorageBackend"]
+    T5 --> STO
+    T6 --> ENG
+    T7 --> SVC["SearchService / MemoryService"]
+    T8 --> STO
+    ENG --> STO
+</div>
+
+<h3>关键代码：MCP 工具的样板</h3>
+<div class="code">
+<span class="com"># 摘自 slayer/mcp/server.py</span>
+<span class="kw">@mcp</span>.tool()
+<span class="kw">async def</span> <span class="fn">query</span>(
+    source_model: <span class="var">str</span> | ModelExtension | SlayerModel,
+    measures: <span class="var">list</span>[<span class="var">dict</span>[<span class="var">str</span>, <span class="var">str</span>]] | <span class="var">None</span> = <span class="kw">None</span>,
+    dimensions: <span class="var">list</span>[<span class="var">str</span>] | <span class="var">None</span> = <span class="kw">None</span>,
+    filters: <span class="var">list</span>[<span class="var">str</span>] | <span class="var">None</span> = <span class="kw">None</span>,
+    time_dimensions: <span class="var">list</span>[<span class="var">dict</span>[<span class="var">str</span>, <span class="var">Any</span>]] | <span class="var">None</span> = <span class="kw">None</span>,
+    order: <span class="var">list</span>[<span class="var">dict</span>[<span class="var">str</span>, <span class="var">str</span>]] | <span class="var">None</span> = <span class="kw">None</span>,
+    limit: <span class="var">int</span> | <span class="kw">None</span> = <span class="kw">None</span>,
+    ...
+):
+    data = {<span class="str">"source_model"</span>: source_model}
+    <span class="kw">if</span> dimensions: data[<span class="str">"dimensions"</span>] = <span class="fn">list</span>(dimensions)
+    ...
+    slayer_query = <span class="var">SlayerQuery</span>.<span class="fn">model_validate</span>(data)
+    result = <span class="kw">await</span> engine.<span class="fn">execute</span>(query=slayer_query, ...)
+    <span class="kw">return</span> <span class="fn">_format_output</span>(result=result, fmt=fmt)</div>
+
+<div class="note">
+  <strong>注意：</strong> MCP 工具方法本身只是<b>薄薄一层</b>——它的工作是
+  （1）把工具参数打包成 Pydantic 接受的 dict；（2）调用共享的 <code>SlayerQueryEngine</code>；
+  （3）把 <code>SlayerResponse</code> 序列化成 markdown/json/csv 返回。
+  所有真正的"魔法"都在 <code>engine.execute()</code> 里。
+</div>
+
+<h3>MCP 的两种传输</h3>
+<table>
+  <tr><th>传输方式</th><th>启动</th><th>典型场景</th></tr>
+  <tr><td><b>stdio</b>（默认）</td><td><code>slayer mcp</code>，被 Claude Code 等直接拉起</td><td>本地 IDE Agent</td></tr>
+  <tr><td><b>SSE / streamable-http</b></td><td><code>slayer serve --mcp-transport sse</code>（端口 5143）</td><td>远程 / 共享 Agent 服务</td></tr>
+</table>
+</section>
+
+<!-- ============ CORE MODELS ============ -->
+<section id="core-models" class="section">
+<h2>5. 核心数据模型</h2>
+<p>
+  SLayer 的所有领域模型都是 <b>Pydantic v2 BaseModel</b>，位于 <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/">slayer/core/</a>。
+  这一层是整个系统的"骨架"——它回答"系统能表达什么"。
+</p>
+
+<div class="mermaid">
+classDiagram
+    class DatasourceConfig {
+        +str name
+        +str type
+        +str host
+        +int port
+        +str database
+        +str username
+        +str password
+        +Dict env vars
+    }
+    class SlayerModel {
+        +int version = 7
+        +str name
+        +str data_source
+        +str sql_table
+        +str sql
+        +List~Column~ columns
+        +List~ModelMeasure~ measures
+        +List~ModelJoin~ joins
+        +List~str~ filters
+    }
+    class Column {
+        +str name
+        +str sql
+        +DataType type
+        +bool primary_key
+        +List~str~ allowed_aggregations
+    }
+    class ModelMeasure {
+        +str name
+        +str formula  // Mode B DSL
+        +DataType type
+    }
+    class ModelJoin {
+        +str target_model
+        +JoinType type
+        +str on_sql
+    }
+    class SlayerQuery {
+        +int version = 3
+        +str source_model
+        +List measures
+        +List dimensions
+        +List time_dimensions
+        +List filters
+        +List order
+        +int limit
+    }
+    class SessionPolicy {
+        +List data_filters
+        +ColumnFilterRule
+        +JoinFilterRule
+    }
+    DatasourceConfig "1" --> "*" SlayerModel : contains
+    SlayerModel "1" --> "*" Column
+    SlayerModel "1" --> "*" ModelMeasure
+    SlayerModel "1" --> "*" ModelJoin
+    SlayerModel "1" --> "0..1" SessionPolicy : enforced at query
+    SlayerQuery "1" --> "1" SlayerModel : references by source_model
+</div>
+
+<table>
+  <tr><th>类</th><th>文件</th><th>作用</th></tr>
+  <tr><td><code>DatasourceConfig</code></td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/models.py">models.py</a></td><td>一个数据库连接（类型、host、凭证，支持 <code>${ENV}</code> 引用）</td></tr>
+  <tr><td><code>SlayerModel</code></td><td>同上</td><td>一个语义模型（对应物理表 / SQL 子查询 / 多阶段查询）</td></tr>
+  <tr><td><code>Column</code></td><td>同上</td><td>模型上的一个可被 group-by / 聚合 / 过滤的字段</td></tr>
+  <tr><td><code>ModelMeasure</code></td><td>同上</td><td>命名公式（可在 query 中以裸名引用）</td></tr>
+  <tr><td><code>ModelJoin</code></td><td>同上</td><td>模型之间的 LEFT/INNER JOIN 声明</td></tr>
+  <tr><td><code>SlayerQuery</code></td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/query.py">query.py</a></td><td>用户查询描述（measures / dimensions / filters …）</td></tr>
+  <tr><td><code>SessionPolicy</code></td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/policy.py">policy.py</a></td><td>行级安全（RLS）会话策略</td></tr>
+  <tr><td><code>DataType</code></td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/enums.py">enums.py</a></td><td><code>TEXT / INT / DOUBLE / BOOLEAN / DATE / TIMESTAMP</code></td></tr>
+</table>
+
+<h3 id="slayer-model">SlayerModel 详解</h3>
+<p><code>SlayerModel</code> 是语义层的核心——它定义一张"业务可用的虚拟表"。它有三种 source 模式，<b>三选一</b>：</p>
+<div class="card blue">
+  <h4>三种 source 模式互斥</h4>
+  <ul>
+    <li><b>sql_table：</b>直接绑物理表 <code>public.orders</code></li>
+    <li><b>sql：</b>自定义 SQL 子查询 <code>SELECT … FROM …</code></li>
+    <li><b>source_queries：</b>多阶段查询链（DAG），每段是一个 <code>SlayerQuery</code></li>
+  </ul>
+</div>
+
+<div class="code">
+<span class="kw">class</span> <span class="fn">SlayerModel</span>(<span class="var">BaseModel</span>):
+    version: <span class="var">int</span> = <span class="num">7</span>                    <span class="com"># 当前 schema 版本</span>
+    name: <span class="var">str</span>                              <span class="com"># ^[a-zA-Z_][a-zA-Z0-9_]*$，不含 . : __</span>
+    description: <span class="var">str</span> | <span class="kw">None</span> = <span class="kw">None</span>
+    data_source: <span class="var">str</span> | <span class="kw">None</span> = <span class="kw">None</span>          <span class="com"># 物理表底模型必填</span>
+    sql_table: <span class="var">str</span> | <span class="kw">None</span> = <span class="kw">None</span>            <span class="com"># 模式 1：物理表</span>
+    sql: <span class="var">str</span> | <span class="kw">None</span> = <span class="kw">None</span>                  <span class="com"># 模式 2：SQL 子查询</span>
+    source_queries: <span class="var">list</span>[SlayerQuery] | <span class="kw">None</span> = <span class="kw">None</span>  <span class="com"># 模式 3：查询链</span>
+    columns: <span class="var">list</span>[Column] = []                <span class="com"># 统一列（v2 起 dim+measure 合并）</span>
+    measures: <span class="var">list</span>[ModelMeasure] = []         <span class="com"># 命名公式库</span>
+    aggregations: <span class="var">list</span>[Aggregation] = []        <span class="com"># 自定义聚合</span>
+    joins: <span class="var">list</span>[ModelJoin] = []               <span class="com"># LEFT/INNER 声明</span>
+    filters: <span class="var">list</span>[<span class="var">str</span>] = []                  <span class="com"># 总是应用的 WHERE（Mode A SQL）</span>
+    default_time_dimension: <span class="var">str</span> | <span class="kw">None</span> = <span class="kw">None</span>
+    query_variables: <span class="var">dict</span>[<span class="var">str</span>, <span class="var">Any</span>] = {}     <span class="com"># 给 {var} 占位符的默认值</span>
+    meta: <span class="var">dict</span>[<span class="var">str</span>, <span class="var">Any</span>] = {}                <span class="com"># 用户自定义元数据</span></div>
+
+<h3 id="slayer-query">SlayerQuery 详解</h3>
+<p><code>SlayerQuery</code> 是用户每次查询的"描述"。它和 <code>SlayerModel</code> 是 1:N 关系：</p>
+<div class="code">
+<span class="kw">class</span> <span class="fn">SlayerQuery</span>(<span class="var">BaseModel</span>):
+    version: <span class="var">int</span> = <span class="num">3</span>
+    name: <span class="var">str</span> | <span class="kw">None</span> = <span class="kw">None</span>                <span class="com"># 链式 stage 名（首段之外都需要）</span>
+    source_model: <span class="var">str</span> | SlayerModel | ModelExtension
+    measures: <span class="var">list</span>[MeasureSpec] = []        <span class="com"># {"formula": "revenue:sum"} 形式</span>
+    dimensions: <span class="var">list</span>[<span class="var">str</span> | ColumnRef] = []
+    time_dimensions: <span class="var">list</span>[TimeDimension] = []  <span class="com"># 带 granularity / date_range</span>
+    filters: <span class="var">list</span>[<span class="var">str</span>] = []                <span class="com"># Mode B DSL，含 {var} 占位符</span>
+    order: <span class="var">list</span>[OrderBy] = []
+    limit: <span class="var">int</span> | <span class="kw">None</span> = <span class="kw">None</span>
+    offset: <span class="var">int</span> | <span class="kw">None</span> = <span class="kw">None</span>
+    variables: <span class="var">dict</span>[<span class="var">str</span>, <span class="var">Any</span>] = {}             <span class="com"># 给 {var} 提供值</span>
+    distinct_dimension_values: <span class="var">bool</span> = <span class="kw">True</span>   <span class="com"># Cube.js 风格 dim 自动去重</span>
+    model_config = <span class="var">ConfigDict</span>(extra=<span class="str">"forbid"</span>)  <span class="com"># 严格：拒绝未知字段</span></div>
+
+<div class="tip">
+  <strong>多 stage DAG：</strong>当 <code>source_queries</code> 或传入的 <code>query=[]</code> 是列表时，整个查询是一个 DAG。
+  引擎用 Kahn 算法自动拓扑排序，<b>最后一段始终是 entry point</b>（它的结果就是返回值）。
+</div>
+
+<h3 id="reference-modes">Mode A / Mode B 引用</h3>
+<p>SLayer 把"如何解析字符串引用"分成两套规则，混用得当才不会出 bug：</p>
+<table>
+  <tr><th>模式</th><th>适用字段</th><th>解析器</th><th>允许写法</th></tr>
+  <tr>
+    <td><b>Mode A (SQL)</b></td>
+    <td><code>Column.sql</code>、<code>Column.filter</code>、<code>SlayerModel.filters</code></td>
+    <td>sqlglot 解析</td>
+    <td>任意 SQL 表达式，<code>__</code> 分隔 join path</td>
+  </tr>
+  <tr>
+    <td><b>Mode B (DSL)</b></td>
+    <td><code>ModelMeasure.formula</code>、<code>SlayerQuery.measures</code> / <code>filters</code></td>
+    <td>Python AST 解析</td>
+    <td><code>revenue:sum</code>、<code>customers.regions.name</code>、transform 调用</td>
+  </tr>
+</table>
+
+<div class="code">
+<span class="com"># Mode A (SQL) — 解析器是 sqlglot</span>
+columns:
+- name: full_name
+  sql: <span class="str">"first_name || ' ' || last_name"</span>     <span class="com"># 任意 SQL</span>
+- name: customer_region
+  sql: <span class="str">"customers__regions.name"</span>             <span class="com"># __ 跨模型</span>
+
+<span class="com"># Mode B (DSL) — 解析器是 Python AST</span>
+measures:
+- name: aov
+  formula: <span class="str">"revenue:sum / *:count"</span>              <span class="com"># 聚合后缀</span>
+- name: order_count
+  formula: <span class="str">"orders.id:count_distinct"</span>          <span class="com"># 显式聚合</span>
+- name: mom_growth
+  formula: <span class="str">"change_pct(revenue:sum)"</span>          <span class="com"># transform</span></div>
+
+<p>两者的"白名单"必须共享：<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/formula.py">core/formula.py</a> 中的 <code>SCALAR_PASSTHROUGH</code> 列出了所有可用的标量函数（coalesce、abs、round、greatest、lower、…）。</p>
+</section>
+
+<!-- ============ LIFECYCLE ============ -->
+<section id="lifecycle" class="section">
+<h2>6. 查询生命周期（深入）</h2>
+<p>我们已经在第 3 节看过完整时序图。这里把每一阶段单拎出来讲。</p>
+
+<div class="mermaid">
+flowchart TB
+    A[SlayerQuery 输入] --> B[1. _normalize_input]
+    B --> C{是 list?}
+    C -->|是| D[2. _topologically_order_queries<br/>Kahn 排序]
+    C -->|否| E[3. resolve_model]
+    D --> E
+    E --> F[4. enrich_query]
+    F --> G[5. SQLGenerator.generate]
+    G --> H{有 RLS?}
+    H -->|是| I[6. apply_session_policy]
+    H -->|否| J[7. cache 查询]
+    I --> J
+    J -->|miss| K[8. SlayerSQLClient.execute]
+    J -->|hit| M[返回缓存]
+    K --> L[9. SlayerResponse 包装]
+    L --> N[返回给 Surface]
+</div>
+
+<h3 id="normalization">第 1 步：输入归一化（_normalize_input）</h3>
+<p>引擎接受 4 种输入形态，统一转成 <code>SlayerQuery</code>：</p>
+<table>
+  <tr><th>形态</th><th>含义</th><th>处理</th></tr>
+  <tr><td><code>SlayerQuery</code></td><td>强类型对象</td><td>直接进入富化</td></tr>
+  <tr><td><code>dict</code></td><td>JSON 形态</td><td><code>SlayerQuery.model_validate(...)</code></td></tr>
+  <tr><td><code>list</code></td><td>多阶段 DAG</td><td>归一化 → 拓扑排序</td></tr>
+  <tr><td><code>str</code></td><td>run-by-name</td><td>通过 <code>storage.get_model(name)</code> 取回查询链</td></tr>
+</table>
+
+<p>多 stage 时调 <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/query_engine.py">_topologically_order_queries</a>：
+自实现 Kahn 算法，从 <code>source_model</code> / <code>joins[].target_model</code> 抽取依赖，
+校验缺失名 / 重名 / 自指 / 环。最后一段固定为根（entry point）。</p>
+
+<h3 id="enrichment">第 2 步：富化（enrich_query）</h3>
+<p>
+  <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/enrichment.py">enrich_query</a> 是"查询编译"的核心。
+  它接收 <code>SlayerQuery + 已解析的 models</code>，产出 <code>EnrichedQuery</code>。
+</p>
+
+<div class="mermaid">
+flowchart LR
+    subgraph In[输入]
+        SQ[SlayerQuery]
+        MOD[SlayerModel + joins]
+    end
+    In --> P1[1. 维度解析<br/>含多跳 customers.regions.name]
+    P1 --> P2[2. 度量解析<br/>revenue:sum → AST]
+    P2 --> P3[3. Transform 检查<br/>需时间维度时取 default_time_dimension]
+    P3 --> P4[4. 过滤器富化<br/>DSL → Predicate AST<br/>标量白名单过滤]
+    P4 --> P5[5. Distinct dedup<br/>dim-only 自动 GROUP BY]
+    P5 --> P6[6. 引用 dedup<br/>合并相同 transform 内部引用]
+    P6 --> Out[EnrichedQuery<br/>所有 SQL 表达式都是 sqlglot exp.Expression]
+</div>
+
+<p>富化后的对象里，<b>所有 SQL 表达式都是裸的 sqlglot <code>exp.Expression</code> 节点</b>——模型查找工作全部完成，下游无需再访问 storage。</p>
+
+<div class="card green">
+  <h4>几个富化期的关键转换</h4>
+  <ul>
+    <li><b>字符串 "revenue:sum"</b> → <code>MeasureSpec(formula="revenue:sum", aggregation="sum", source_column=Column(...))</code></li>
+    <li><b>跨模型 "customers.score:avg"</b> → <code>CrossModelMeasure</code>（走 inner CTE + LEFT JOIN）</li>
+    <li><b>change / change_pct</b> → 反糖成 <code>hidden time_shift + 算术</code>，便于统一处理</li>
+    <li><b>计算型过滤器</b>（如 <code>change(revenue:sum) &gt; 0</code>）→ 抽出为 hidden field，在外层 WHERE 应用</li>
+  </ul>
+</div>
+
+<h3 id="sql-gen">第 3 步：SQL 生成（SQLGenerator.generate）</h3>
+<p>
+  <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/sql/generator.py">SQLGenerator</a> 的设计原则：
+</p>
+<div class="layer">
+  <div class="item"><div class="name">1. 只接受 EnrichedQuery</div><div class="desc">不再访问 storage，所有查找已在富化期完成。</div></div>
+  <div class="item"><div class="name">2. AST 化构造</div><div class="desc">用 sqlglot 的 <code>exp.*</code> 节点而非字符串拼接。</div></div>
+  <div class="item"><div class="name">3. 委托方言</div><div class="desc">所有"此方言特有"的逻辑都在 <code>SqlDialect</code> 子类上。</div></div>
+  <div class="item"><div class="name">4. CAST + 保留字统一处理</div><div class="desc">在最终 emit 之前统一套 CAST 和加引号。</div></div>
+</div>
+
+<p>主流程（<code>SQLGenerator._generate_base</code>）：</p>
+<div class="mermaid">
+flowchart TB
+    EQ[EnrichedQuery] --> A[1. 物理化 source<br/>CTE chain / sql subquery / sql_table]
+    A --> B[2. JOIN 子句<br/>diamond 走 __ 路径别名消歧]
+    B --> C{needs_group_by?}
+    C -->|是| D[3. GROUP BY 注入]
+    C -->|否| E[4. 跳过 GROUP BY]
+    D --> F[5. SELECT 列表]
+    E --> F
+    F --> G[6. Filter 应用<br/>measure 过滤 → HAVING<br/>dim 过滤 → 外层 WHERE]
+    G --> H[7. Transform 应用<br/>cumsum → 窗口函数<br/>time_shift → CTE 自连接]
+    H --> I[8. CAST 包装<br/>按 DataType 套 CAST]
+    I --> J[9. 保留字引用加引号]
+    J --> K[10. 委托 dialect.rewrite_emitted_sql<br/>(BigQuery mangling 等)]
+    K --> L[final_sql]
+</div>
+
+<p>实际生成的 SQL 形态示例（来自 wiki 05）：</p>
+<div class="code">
+<span class="com">-- 输入：跨模型度量 + 时间变化（orders → customers → 月环比）</span>
+<span class="kw">WITH</span>
+  cm_customers <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+      <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, orders.ordered_at) <span class="kw">AS</span> orders.ordered_at_month,
+      <span class="fn">AVG</span>(orders__customers.score) <span class="kw">AS</span> _cm_customers__orders__customers_score_avg
+    <span class="kw">FROM</span> main.orders <span class="kw">AS</span> orders
+    <span class="kw">LEFT JOIN</span> main.customers <span class="kw">AS</span> orders__customers <span class="kw">ON</span> orders.customer_id = orders__customers.id
+    <span class="kw">GROUP BY</span> <span class="num">1</span>
+  )
+<span class="kw">SELECT</span>
+  orders.ordered_at_month,
+  _cm_customers__orders__customers_score_avg <span class="kw">AS</span> orders.customers.score_avg,
+  (<span class="fn">SUM</span>(...) - <span class="fn">LAG</span>(<span class="fn">SUM</span>(...)) <span class="kw">OVER</span> (...)) / <span class="fn">NULLIF</span>(<span class="fn">LAG</span>(...) <span class="kw">OVER</span> (...), <span class="num">0</span>) <span class="kw">AS</span> orders.mom_growth
+<span class="kw">FROM</span> cm_customers ...
+</div>
+
+<h3 id="rls">第 4 步：行级安全（apply_session_policy）</h3>
+<p>如果构造 engine 时传了 <code>SessionPolicy</code>，SQL 生成后会做一次重写：</p>
+<div class="mermaid">
+flowchart LR
+    A[final_sql] --> B[sqlglot parse AST]
+    B --> C[遍历所有 From 子句]
+    C --> D{是物理表?}
+    D -->|是| E[FROM t →<br/>FROM SELECT * FROM t WHERE col=val AS t]
+    D -->|否 - CTE/derived| F[跳过]
+    E --> G[Join rule 走 EXISTS 半连接]
+    G --> H[SQL 注入安全 exp.convert]
+    F --> I
+    H --> I[新 sql]
+</div>
+
+<div class="note">
+  <strong>安全性细节：</strong>所有值通过 <code>exp.convert</code> 注入，不是字符串拼接——所以无法 SQL 注入。
+  强制 backstop：任何含 <code>JoinFilterRule</code> 的策略必须同时含至少一个 <code>on_unapplicable="block"</code> 的 <code>ColumnFilterRule</code>。
+</div>
+
+<h3 id="execution">第 5 步：执行 + 缓存 + 包装</h3>
+<p>
+  <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/sql/client.py">SlayerSQLClient</a> 按方言选择驱动：
+</p>
+<table>
+  <tr><th>数据库</th><th>驱动</th><th>异步性</th></tr>
+  <tr><td>Postgres</td><td>asyncpg</td><td>原生 async</td></tr>
+  <tr><td>MySQL</td><td>aiomysql</td><td>原生 async</td></tr>
+  <tr><td>SQLite / DuckDB / ClickHouse / SQL Server / Snowflake / BigQuery</td><td>同步驱动</td><td><code>asyncio.to_thread</code> 回退</td></tr>
+  <tr><td>同进程 <code>:memory:</code> SQLite</td><td>StaticPool</td><td>跨 await 共享单连接</td></tr>
+</table>
+
+<p>缓存（可选，<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/cache.py">engine/cache.py</a>）：</p>
+<ul>
+  <li><b>键：</b><code>sha256(final_sql + "|" + connection_string + "|" + runtime_fingerprint)</code></li>
+  <li><b>失效：</b>TTL 懒加载 + Cube 风格 refresh_keys（监控某张表某表达式的值）</li>
+  <li><b>触发：</b>只有 Python API 显式 <code>cache=True</code> 时生效；REST/MCP/CLI 默认不缓存</li>
+</ul>
+
+<p>最后包装成 <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/query_engine.py">SlayerResponse</a>：</p>
+<div class="code">
+<span class="kw">class</span> <span class="fn">SlayerResponse</span>(<span class="var">BaseModel</span>):
+    data: <span class="var">list</span>[<span class="var">dict</span>[<span class="var">str</span>, <span class="var">Any</span>]]   <span class="com"># 行级结果</span>
+    sql: <span class="var">str</span> | <span class="kw">None</span>                 <span class="com"># 实际执行的 SQL</span>
+    attributes: ResponseAttributes         <span class="com"># dimension/measure 元数据 (label, format)</span>
+    row_count: <span class="var">int</span>
+    query_runtime_ms: <span class="var">float</span>
+    query_warnings: <span class="var">list</span>[<span class="var">str</span>] = []</div>
+
+<p>MCP / REST 层再把 <code>SlayerResponse</code> 序列化成 markdown / json / csv 字符串返回给客户端。</p>
+</section>
+
+<!-- ============ STORAGE ============ -->
+<section id="storage" class="section">
+<h2>7. 存储后端</h2>
+<p>
+  <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/storage/base.py">StorageBackend</a> 是抽象基类，
+  两种内置实现：<code>YAMLStorage</code>（git-friendly，默认）和 <code>SQLiteStorage</code>（embedded，跨进程一致）。
+</p>
+
+<div class="mermaid">
+flowchart TB
+    IFace[StorageBackend<br/>async def CRUD] --> YAML[YAMLStorage]
+    IFace --> SQL[SQLiteStorage]
+    YAML --> YD[models/<ds>/<name>.yaml]
+    YAML --> YD2[datasources/<name>.yaml]
+    YAML --> YD3[memories/<id>.md]
+    YAML --> YD4[embeddings.db 侧车]
+    SQL --> SD[(单 .db 文件<br/>models/datasources/<br/>memories/embeddings/settings)]
+    YAML --> MIG[统一迁移链 v1→v7]
+    SQL --> MIG
+</div>
+
+<h3>YAML 布局示意</h3>
+<div class="code">
+.slayer_data/
+├── models/
+│   ├── jaffle_shop/                    <span class="com"># data_source 目录</span>
+│   │   ├── customers.yaml
+│   │   ├── orders.yaml
+│   │   └── tweets.yaml
+│   └── my_postgres/
+│       └── orders.yaml
+├── datasources/
+│   ├── jaffle_shop.yaml                <span class="com"># DatasourceConfig</span>
+│   └── my_postgres.yaml
+├── memories/
+│   ├── 1.md
+│   └── kb_policy_42.md                 <span class="com"># 用户可控 ID</span>
+├── priority.yaml                       <span class="com"># 多 DS 同名消歧</span>
+└── embeddings.db                       <span class="com"># 嵌入向量（litellm）</span>
+</div>
+
+<h3>迁移链（migrations）</h3>
+<p>三个核心类型各自带 <code>version</code>，所有 load 路径都通过 <code>@model_validator(mode="before")</code> 钩子调 <code>storage/migrations.py::migrate</code> 链式升级：</p>
+<div class="mermaid">
+flowchart LR
+    v1[v1: dim/measure 分离] -->|v2_migration| v2[v2: 合并到 columns]
+    v2 -->|v3| v3[v3: 删除 query.dry_run]
+    v3 -->|v4| v4[v4: data_source 必填]
+    v4 -->|v5| v5[v5: string→TEXT 等类型枚举化]
+    v5 -->|v6| v6[v6: 新增 Column.sampled]
+    v6 -->|v7| v7[v7: 新增 sampled_values & distinct_count]
+</div>
+
+<h3>Cascade-on-Delete</h3>
+<p>当一个 model / datasource 被删除时，所有引用它的 memory 会被自动 strip——具体规则：</p>
+<ul>
+  <li><code>mydb.orders</code> 同时 strip <code>mydb.orders.amount</code>（精确 + dotted 后代）</li>
+  <li><code>mydb.orders</code> <em>不会</em> strip <code>mydb.orders_archive</code>（不是 dotted 后代）</li>
+  <li><code>memory:42</code> 只 strip 精确匹配，不会 strip <code>memory:421</code></li>
+</ul>
+</section>
+
+<!-- ============ DIALECTS ============ -->
+<section id="dialects" class="section">
+<h2>8. 多方言策略模式</h2>
+<p>
+  不同数据库的 SQL 语法差异很大。SLayer 用<b>策略模式</b>处理：每种方言一个 <code>SqlDialect</code> 子类。
+</p>
+
+<div class="mermaid">
+classDiagram
+    class SqlDialect {
+        <<abstract>>
+        +dialect_name: str
+        +build_date_trunc()
+        +build_approx_count_distinct()
+        +rewrite_emitted_sql()
+        +decode_result_keys()
+        +apply_session_overrides()
+    }
+    class SqliteDialect
+    class PostgresDialect
+    class MySqlDialect
+    class DuckDbDialect
+    class ClickhouseDialect
+    class TSqlDialect
+    class SnowflakeDialect
+    class BigqueryDialect
+    class Tier2Dialect
+    SqlDialect <|-- SqliteDialect
+    SqlDialect <|-- PostgresDialect
+    SqlDialect <|-- MySqlDialect
+    SqlDialect <|-- DuckDbDialect
+    SqlDialect <|-- ClickhouseDialect
+    SqlDialect <|-- TSqlDialect
+    SqlDialect <|-- SnowflakeDialect
+    SqlDialect <|-- BigqueryDialect
+    SqlDialect <|-- Tier2Dialect
+</div>
+
+<h3>关键差异点</h3>
+<table>
+  <tr><th>方言</th><th>关键差异</th></tr>
+  <tr><td>SQLite</td><td>median/percentile/stddev 通过 Python 聚合 UDF；JSON 强制 <code>json_extract(...)</code></td></tr>
+  <tr><td>Postgres</td><td>原生 <code>PERCENTILE_CONT WITHIN GROUP</code>、<code>STDDEV_SAMP/POP</code>、<code>CORR</code> 等</td></tr>
+  <tr><td>DuckDB</td><td>sqlglot 转译为 <code>QUANTILE_CONT</code></td></tr>
+  <tr><td>MySQL</td><td>median/percentile → <code>NotImplementedError</code>；<code>corr</code> 用方差分解</td></tr>
+  <tr><td>ClickHouse</td><td><code>quantile(p)(x)</code> 形式；相关子查询需 ≥ 25.4（RLS 探活）</td></tr>
+  <tr><td>Snowflake</td><td>原生 <code>MEDIAN/PERCENTILE_CONT</code>；key-pair/OAuth/SSO/MFA 认证</td></tr>
+  <tr><td>BigQuery</td><td>dotted-alias <code>__</code> 改 <code>___</code>（output schema 限制）；缺 FK 元数据</td></tr>
+  <tr><td>T-SQL (SQL Server)</td><td><code>STDEV/STDEVP</code> 别名；<code>DATETRUNC</code> + <code>DATEADD</code></td></tr>
+</table>
+
+<h3><code>count_distinct_approx</code> 举例</h3>
+<div class="code">
+<span class="com"># SqlDialect.build_approx_count_distinct(列) → SQL 表达式</span>
+
+DuckDB / Spark:     <span class="fn">APPROX_COUNT_DISTINCT</span>(x)
+ClickHouse:         <span class="fn">uniq</span>(x)
+BigQuery / Snowflake: <span class="fn">APPROX_COUNT_DISTINCT</span>(x)
+Trino / Presto:     <span class="fn">APPROX_DISTINCT</span>(x)
+Redshift:           <span class="fn">APPROXIMATE COUNT</span>(<span class="kw">DISTINCT</span> x)
+Postgres / SQLite:  <span class="kw">回退到</span> <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> x)    <span class="com"># 无原生近似</span></div>
+</section>
+
+<!-- ============ SEARCH & MEMORIES ============ -->
+<section id="search" class="section">
+<h2>9. 搜索与记忆</h2>
+<p>这是 SLayer 作为"Agent 优先"语义层区别于传统语义层的关键能力。</p>
+
+<div class="mermaid">
+flowchart TB
+    IN[search entities, query, question] --> S[SearchService]
+    S --> C1[Channel 1: BM25<br/>实体标签倒排]
+    S --> C2[Channel 2: Tantivy<br/>全文索引]
+    S --> C3[Channel 3: Embedding<br/>cosine 相似度]
+    C1 --> RRF[RRF 融合 k=60]
+    C2 --> RRF
+    C3 --> RRF
+    RRF --> OUT[扁平 SearchResponse<br/>memories + entities + example_queries]</div>
+
+<h3>三通道</h3>
+<ul>
+  <li><b>Channel 1 (BM25)：</b>当提供 <code>entities</code> 或 <code>query</code> 时激活，对记忆的实体标签做 entity-overlap BM25。</li>
+  <li><b>Channel 2 (Tantivy)：</b>当提供 <code>question</code> 时激活，在内存中建倒排索引，覆盖所有 memory + searchable entity。</li>
+  <li><b>Channel 3 (Embedding)：</b>当 <code>question</code> + <code>advanced_search</code> extra 安装 + provider key 配置时激活，<code>litellm</code> 调嵌入 API 做余弦相似度。</li>
+</ul>
+
+<p>三通道结果用 <b>Reciprocal Rank Fusion (RRF, k=60)</b> 融合成单个排序的 results 列表。</p>
+
+<h3>Memory 系统</h3>
+<p>
+  <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/memories/service.py">MemoryService</a> 提供 CRUD + cascade。
+  Agent 可以通过 MCP 工具 <code>save_memory</code> 保存学习笔记，下次通过 <code>search</code> 召回。
+</p>
+<div class="card pink">
+  <h4>典型用法</h4>
+  <div class="code">
+save_memory(
+    learning=<span class="str">"orders.is_returned in {0,1,NULL}; treat NULL as not returned"</span>,
+    linked_entities=[<span class="str">"orders.is_returned"</span>],
+)
+
+save_memory(
+    learning=<span class="str">"Paid revenue by status"</span>,
+    linked_entities={
+        <span class="str">"source_model"</span>: <span class="str">"orders"</span>,
+        <span class="str">"measures"</span>: [{<span class="str">"formula"</span>: <span class="str">"amount:sum"</span>}],
+        <span class="str">"filters"</span>: [<span class="str">"status = 'paid'"</span>],
+    },
+    id=<span class="str">"kb.paid-revenue"</span>,
+)</div>
+</div>
+</section>
+
+<!-- ============ INTERFACES ============ -->
+<section id="interfaces" class="section">
+<h2>10. 多接口暴露</h2>
+<p>同一份 <code>SlayerQueryEngine</code> 被 5 个接口包出不同形态：</p>
+
+<div class="mermaid">
+flowchart LR
+    E[SlayerQueryEngine] --> A1[CLI<br/>slayer/cli.py]
+    E --> A2[REST + MCP<br/>slayer/api/server.py]
+    E --> A3[MCP<br/>slayer/mcp/server.py]
+    E --> A4[Flight SQL<br/>slayer/flight/<br/>port 5144]
+    E --> A5[pg-wire<br/>slayer/pg_facade/<br/>port 5145]
+    E --> A6[Python<br/>slayer/client/]
+    A1 --> U1[终端用户]
+    A2 --> U2[Web / 远程 Agent]
+    A3 --> U3[本地 Agent / Claude Code]
+    A4 --> U4[JDBC 客户端 / BI 工具]
+    A5 --> U5[任何 PG 客户端]
+    A6 --> U6[应用嵌入]</div>
+
+<h3>启动矩阵</h3>
+<table>
+  <tr><th>模式</th><th>命令</th><th>端口</th></tr>
+  <tr><td>仅 CLI</td><td><code>slayer ...</code></td><td>—</td></tr>
+  <tr><td>REST API</td><td><code>slayer serve</code></td><td>5143</td></tr>
+  <tr><td>MCP stdio</td><td><code>slayer mcp</code></td><td>—</td></tr>
+  <tr><td>MCP SSE</td><td><code>slayer serve --mcp-transport sse</code></td><td>5143</td></tr>
+  <tr><td>Flight SQL</td><td><code>slayer flight-serve</code></td><td>5144</td></tr>
+  <tr><td>pg-wire</td><td><code>slayer pg-serve</code></td><td>5145</td></tr>
+  <tr><td>嵌入 Python</td><td><code>SlayerClient(storage=...)</code></td><td>—</td></tr>
+</table>
+
+<p>值得一提的两个 BI 接入层：</p>
+<ul>
+  <li><b>Flight SQL (5144)：</b>把 semantic models 当成 Arrow 表暴露，JDBC 客户端可以直接连。</li>
+  <li><b>pg-wire (5145)：</b>用 Python 实现 Postgres 协议，PG 客户端连接后看到的就是普通 schema（其实是模型列表），可以 <code>SELECT *</code> 浏览。</li>
+</ul>
+</section>
+
+<!-- ============ INGESTION ============ -->
+<section id="ingestion" class="section">
+<h2>11. 自动建模（Auto-Ingestion）</h2>
+<p>
+  SLayer 最大的便利之一：<b>接 DB → 自动建模型</b>。
+  <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/ingestion.py">engine/ingestion.py</a> 提供：
+</p>
+
+<div class="mermaid">
+flowchart LR
+    A[ingest_datasource_models] --> B[1. SQLAlchemy Inspector 反射 schema]
+    B --> C[2. 识别 PK / FK / 数据类型]
+    C --> D[3. SQLite 列做亲和性类型探测]
+    D --> E[4. 构建 FK 图]
+    E --> F{图无环?}
+    F -->|否| G[RollupGraphError]
+    F -->|是| H[5. 生成 ModelJoin<br/>(基于 FK)]
+    H --> I[6. idempotent_merge<br/>不覆盖已有字段]
+    I --> J[7. save_model 落盘]
+    J --> K[8. 触发嵌入 refresh]
+</div>
+
+<p>关键特性：</p>
+<div class="card gold">
+  <h4>幂等 (Idempotent)</h4>
+  <p>重复 ingest 不会覆盖已有的列/连接定义，<b>只追加新增的</b>。
+  漂移（schema 改了）的部分会出现在 <code>validate_models</code> 的 <code>to_delete</code> 列表里，需要人工确认删除。</p>
+</div>
+
+<div class="card blue">
+  <h4>类型精化（Type Refinement）</h4>
+  <p>SQLite 列的声明类型只是 affinity hint。SLayer 会对每列做 100k 行采样，用 <code>typeof()</code> / <code>ROUND(col) &lt;&gt; col</code> / Python coerce 决定实际是 INT 还是 DOUBLE。</p>
+</div>
+</section>
+
+<!-- ============ GLOSSARY ============ -->
+<section id="glossary" class="section">
+<h2>12. 术语表</h2>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><b>Semantic Layer</b></td><td>位于数据库与消费者之间的"业务模型层"，统一暴露度量、维度。</td></tr>
+  <tr><td><b>Measure</b></td><td>度量，如 <code>revenue:sum</code>。对应一个聚合表达式。</td></tr>
+  <tr><td><b>Dimension</b></td><td>维度，group-by 的依据。</td></tr>
+  <tr><td><b>Time Dimension</b></td><td>时间维度，带 <code>granularity</code>（day/week/month/…）和 <code>date_range</code>。</td></tr>
+  <tr><td><b>Mode A (SQL)</b></td><td>用 sqlglot 解析的 SQL 字符串引用，<code>__</code> 跨模型。</td></tr>
+  <tr><td><b>Mode B (DSL)</b></td><td>用 Python AST 解析的公式，<code>.</code> 跨模型、<code>:</code> 聚合后缀。</td></tr>
+  <tr><td><b>RLS</b></td><td>Row-Level Security，行级安全。</td></tr>
+  <tr><td><b>SessionPolicy</b></td><td>会话级 RLS 策略，透明注入到 SQL 的 <code>FROM (SELECT * FROM t WHERE …)</code>。</td></tr>
+  <tr><td><b>EnrichedQuery</b></td><td>富化后的查询对象，所有引用都已解析为完整 SQL 表达式树。</td></tr>
+  <tr><td><b>DAG (source_queries)</b></td><td>多阶段查询的依赖图。引擎用 Kahn 排序，最后一段是 root。</td></tr>
+  <tr><td><b>Cross-Model Measure</b></td><td>跨模型度量（<code>customers.revenue:sum</code>），用 inner CTE + LEFT JOIN 拆解。</td></tr>
+  <tr><td><b>Refresh Keys</b></td><td>Cube 风格缓存失效键，监控某张物理表的某表达式值。</td></tr>
+  <tr><td><b>RRF</b></td><td>Reciprocal Rank Fusion，多通道检索结果的融合算法。</td></tr>
+  <tr><td><b>Schema Drift</b></td><td>数据库 schema 跟持久化 model 不一致的情况。</td></tr>
+</table>
+</section>
+
+<!-- ============ CODE MAP ============ -->
+<section id="code-map" class="section">
+<h2>13. 代码地图（速查表）</h2>
+<p>按"想做什么"反查代码位置：</p>
+
+<table>
+  <tr><th>想做的事</th><th>入口文件</th></tr>
+  <tr><td>理解查询入口</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/query_engine.py">slayer/engine/query_engine.py</a>（<code>SlayerQueryEngine.execute</code>）</td></tr>
+  <tr><td>看富化逻辑</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/enrichment.py">slayer/engine/enrichment.py</a>（<code>enrich_query</code>）</td></tr>
+  <tr><td>看 SQL 生成</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/sql/generator.py">slayer/sql/generator.py</a>（<code>SQLGenerator</code>）</td></tr>
+  <tr><td>看方言差异</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/sql/dialects/">slayer/sql/dialects/</a>（每个方言一个文件）</td></tr>
+  <tr><td>看异步驱动</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/sql/client.py">slayer/sql/client.py</a>（<code>SlayerSQLClient</code>）</td></tr>
+  <tr><td>看 RLS 实现</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/sql/session_policy.py">slayer/sql/session_policy.py</a>（<code>apply_session_policy</code>）</td></tr>
+  <tr><td>看 MCP 工具</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/mcp/server.py">slayer/mcp/server.py</a>（<code>create_mcp_server</code>）</td></tr>
+  <tr><td>看 REST 端点</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/api/server.py">slayer/api/server.py</a>（<code>create_app</code>）</td></tr>
+  <tr><td>看 CLI 子命令</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/cli.py">slayer/cli.py</a></td></tr>
+  <tr><td>看数据模型</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/models.py">slayer/core/models.py</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/query.py">query.py</a>、<a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/policy.py">policy.py</a></td></tr>
+  <tr><td>看 DSL 解析</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/core/formula.py">slayer/core/formula.py</a>（<code>parse_formula</code>）</td></tr>
+  <tr><td>看自动建模</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/ingestion.py">slayer/engine/ingestion.py</a>（<code>ingest_datasource_idempotent</code>）</td></tr>
+  <tr><td>看搜索</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/search/service.py">slayer/search/service.py</a>（三通道 RRF）</td></tr>
+  <tr><td>看记忆</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/memories/service.py">slayer/memories/service.py</a>（<code>MemoryService</code>）</td></tr>
+  <tr><td>看缓存</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/cache.py">slayer/engine/cache.py</a>（<code>QueryCache</code>）</td></tr>
+  <tr><td>看 YAML 存储</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/storage/yaml_storage.py">slayer/storage/yaml_storage.py</a></td></tr>
+  <tr><td>看 SQLite 存储</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/storage/sqlite_storage.py">slayer/storage/sqlite_storage.py</a></td></tr>
+  <tr><td>看迁移</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/storage/migrations.py">slayer/storage/migrations.py</a>（v1→v7）</td></tr>
+  <tr><td>看 Join 图算法</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/join_graph.py">slayer/engine/join_graph.py</a>（<code>JoinGraph</code> + 最短路径）</td></tr>
+  <tr><td>看 Schema Drift</td><td><a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/slayer/engine/schema_drift.py">slayer/engine/schema_drift.py</a></td></tr>
+</table>
+</section>
+
+<footer>
+  本教程基于 SLayer <code>motley-slayer 0.9.9</code>，结合 <a class="code-link" href="file:///Users/zhaofuqing/Documents/Developer/slayer/docs/wiki/">docs/wiki/</a> 目录下的项目理解整理。
+  所有图表用 Mermaid 10 渲染。
+</footer>
+
+</main>
+</div>
+
+<script>
+  // 初始化 Mermaid
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    securityLevel: 'loose',
+    themeVariables: {
+      primaryColor: '#1a2541',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#2c3a5e',
+      lineColor: '#7dd3fc',
+      secondaryColor: '#22304f',
+      tertiaryColor: '#0f172a',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+      fontSize: '13px',
+    },
+    flowchart: {
+      curve: 'basis',
+      useMaxWidth: true,
+      htmlLabels: true,
+    },
+    sequence: {
+      useMaxWidth: true,
+      diagramMarginX: 30,
+      diagramMarginY: 20,
+    },
+  });
+
+  // 平滑滚动 + 高亮侧栏
+  document.querySelectorAll('.sidebar a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const id = a.getAttribute('href').slice(1);
+      const target = document.getElementById(id);
+      if (target) {
+        window.scrollTo({ top: target.offsetTop - 20, behavior: 'smooth' });
+      }
+    });
+  });
+
+  // 滚动监听：高亮当前 section
+  const sectionIds = Array.from(document.querySelectorAll('.section')).map(s => s.id);
+  const navLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+  function onScroll() {
+    let current = sectionIds[0];
+    for (const id of sectionIds) {
+      const el = document.getElementById(id);
+      if (el && el.getBoundingClientRect().top < 100) current = id;
+    }
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+
+</body>
+</html>
