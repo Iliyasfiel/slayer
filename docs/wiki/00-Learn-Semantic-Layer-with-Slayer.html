@@ -1,1 +1,275 @@
-RESTORING
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>用 SLayer 学语义层 · 完整学习手册</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #0f172a;
+    --panel-2: #1a2541;
+    --border: #2c3a5e;
+    --text: #e6edf7;
+    --muted: #94a3b8;
+    --accent: #7dd3fc;
+    --accent-2: #38bdf8;
+    --code-bg: #0a0f1c;
+    --ok: #34d399;
+    --warn: #fcd34d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    line-height: 1.7; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
+
+  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 0; }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } .sidebar { position: relative !important; height: auto !important; } }
+
+  .sidebar {
+    position: sticky; top: 0; align-self: start;
+    height: 100vh; overflow-y: auto;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 22px 18px;
+  }
+  .sidebar h1 { font-size: 16px; margin: 0 0 4px 0; color: var(--accent); }
+  .sidebar .sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+  .sidebar ul { list-style: none; padding: 0; margin: 0; }
+  .sidebar li { margin: 2px 0; }
+  .sidebar a {
+    display: block; padding: 6px 10px; border-radius: 6px;
+    color: var(--text); font-size: 13.5px;
+    border-left: 2px solid transparent;
+  }
+  .sidebar a:hover { background: var(--panel-2); text-decoration: none; }
+  .sidebar a.active {
+    background: var(--panel-2); color: var(--accent);
+    border-left-color: var(--accent);
+  }
+  .sidebar .group-label {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 16px 0 6px 0; padding-left: 10px;
+  }
+
+  main { padding: 32px 48px 80px; max-width: 1100px; }
+  @media (max-width: 980px) { main { padding: 24px 18px 60px; } }
+
+  h1, h2, h3 { color: #e6edf7; }
+  h1 { font-size: 28px; margin-top: 0; }
+  h2 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 40px; }
+  h3 { font-size: 17px; color: var(--accent); margin-top: 24px; }
+  p { margin: 10px 0; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12.5px; }
+  .lead { font-size: 15.5px; color: var(--muted); }
+
+  .section { padding-top: 8px; }
+  .callout {
+    background: rgba(125, 211, 252, 0.08);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px; margin: 14px 0; border-radius: 6px;
+    font-size: 14px;
+  }
+  .callout.warn { background: rgba(252, 211, 77, 0.08); border-left-color: var(--warn); }
+  .callout.ok { background: rgba(52, 211, 153, 0.08); border-left-color: var(--ok); }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px; margin: 14px 0;
+    overflow-x: auto;
+    font-size: 13px; line-height: 1.55;
+  }
+  pre code { color: #e6edf7; }
+  .code { color: #c4b5fd; }
+  .code .kw { color: #f472b6; }
+  .code .str { color: #86efac; }
+  .code .com { color: #64748b; font-style: italic; }
+  .code .var { color: #fcd34d; }
+  .code .num { color: #93c5fd; }
+  .code .fn { color: #7dd3fc; }
+
+  .mermaid {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin: 18px 0;
+    text-align: center;
+    overflow-x: auto;
+    position: relative;
+    cursor: zoom-in;
+    transition: box-shadow .2s;
+  }
+  .mermaid:hover { box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(0,0,0,.35); }
+  .mermaid .zoom-hint {
+    position: absolute; top: 8px; right: 10px;
+    font-size: 11px; color: var(--accent);
+    background: rgba(15,23,42,.85);
+    border: 1px solid var(--border);
+    padding: 2px 8px; border-radius: 999px;
+    pointer-events: none;
+    opacity: .85;
+  }
+
+  #zoom-modal {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(2, 6, 23, .88);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column;
+    backdrop-filter: blur(4px);
+  }
+  #zoom-modal.open { display: flex; }
+  #zoom-modal .zm-toolbar {
+    position: absolute; top: 14px; right: 18px; z-index: 2;
+    display: flex; gap: 8px;
+  }
+  #zoom-modal button {
+    background: rgba(30,41,59,.9);
+    color: #e6edf7;
+    border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 8px;
+    font-size: 13px; cursor: pointer;
+  }
+  #zoom-modal button:hover { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+  #zoom-modal .zm-title {
+    position: absolute; top: 14px; left: 18px; z-index: 2;
+    color: #e6edf7; font-size: 13px;
+    background: rgba(15,23,42,.7);
+    padding: 4px 10px; border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  #zoom-stage {
+    width: 92vw; height: 86vh;
+    overflow: hidden; position: relative;
+    border-radius: 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    cursor: grab;
+  }
+  #zoom-stage.dragging { cursor: grabbing; }
+  #zoom-stage svg {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    user-select: none;
+    max-width: none; max-height: none;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--panel-2); color: var(--accent); }
+  td code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; font-size: 12.5px; }
+
+  .note {
+    background: rgba(252, 211, 77, 0.08);
+    border-left: 3px solid var(--warn);
+    padding: 10px 14px; margin: 14px 0; border-radius: 6px;
+    font-size: 14px;
+  }
+  .src-link {
+    font-size: 12px; color: var(--muted);
+    background: var(--code-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+  }
+  .src-link:hover { color: var(--accent); border-color: var(--accent); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .step {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; margin: 10px 0;
+  }
+  .step .tag {
+    display: inline-block; font-size: 11px; color: var(--accent);
+    background: rgba(125,211,252,.1);
+    border: 1px solid rgba(125,211,252,.3);
+    padding: 1px 8px; border-radius: 999px; margin-right: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <h1>用 SLayer 学语义层</h1>
+    <div class="sub">v1 · 初学者完整手册</div>
+    <div class="group-label">第 0 章 · 导读</div>
+    <ul>
+      <li><a href="#sec-0">手册说明与阅读路径</a></li>
+    </ul>
+    <div class="group-label">第 1 章 · 整体</div>
+    <ul>
+      <li><a href="#sec-1-1">什么是语义层</a></li>
+      <li><a href="#sec-1-2">SLayer 是什么</a></li>
+      <li><a href="#sec-1-3">6 层架构总览</a></li>
+    </ul>
+    <div class="group-label">第 2 章 · 数据链条 MCP→DB</div>
+    <ul>
+      <li><a href="#sec-2-1">全链路时序图</a></li>
+      <li><a href="#sec-2-2">每一跳做什么</a></li>
+    </ul>
+    <div class="group-label">第 3 章 · 核心模型</div>
+    <ul>
+      <li><a href="#sec-3-1">SlayerModel / Column</a></li>
+      <li><a href="#sec-3-2">SlayerQuery / 算子</a></li>
+      <li><a href="#sec-3-3">ModelJoin / RLS</a></li>
+    </ul>
+    <div class="group-label">第 4 章 · 查询生命周期</div>
+    <ul>
+      <li><a href="#sec-4-1">7 步流水线</a></li>
+    </ul>
+    <div class="group-label">第 5 章 · SQL 生成与方言</div>
+    <ul>
+      <li><a href="#sec-5-1">AST 化构建 SQL</a></li>
+      <li><a href="#sec-5-2">方言适配</a></li>
+    </ul>
+    <div class="group-label">第 6 章 · 存储后端</div>
+    <ul>
+      <li><a href="#sec-6-1">YAML / SQLite / Memory</a></li>
+    </ul>
+    <div class="group-label">第 7-13 章 · 进阶</div>
+    <ul>
+      <li><a href="#sec-7">引擎内部</a></li>
+      <li><a href="#sec-8">BI 接入层</a></li>
+      <li><a href="#sec-9">5 种用户接口</a></li>
+      <li><a href="#sec-10">AI 记忆与搜索</a></li>
+      <li><a href="#sec-11">导入器 (dbt / OSI)</a></li>
+      <li><a href="#sec-12">运行与部署</a></li>
+      <li><a href="#sec-13">术语表</a></li>
+    </ul>
+  </aside>
+
+  <main>
+    <h1 style="margin-top:0">用 SLayer 学语义层 · 完整学习手册</h1>
+    <p class="lead">
+      本手册面向初学者，结合开源项目 <a href="https://github.com/MotleyAI/slayer" target="_blank">SLayer</a>
+      ，从「语义层是什么」讲到「一次查询是如何从 MCP 一路走到数据库并把结果带回来」。
+      所有内容均配有 Mermaid 图示与可运行的代码片段。
+    </p>
+    <div class="callout">
+      <b>📌 重要提示：</b>本地版本已支持<b>侧边栏折叠</b>（按钮或 Ctrl/Cmd+B）以及<b>Mermaid 图可缩放/拖拽</b>。
+      请通过 git 同步本地新版到 fork，或在浏览器直接打开本地 <code>file://...</code> 查看最新版本。
+    </div>
+    <div class="callout warn">
+      <b>当前 GitHub Pages 内容：</b>这是上一版（已含 Mermaid 缩放）。完整侧边栏折叠版本因文件 71KB 超过 MCP API 单次传输上限，暂未同步。请按下列步骤获取最新版：
+    </div>
+    <ol>
+      <li>在浏览器打开 <code>file:///Users/zhaofuqing/Documents/Developer/slayer/docs/wiki/00-Learn-Semantic-Layer-with-Slayer.html</code> 查看完整版</li>
+      <li>或运行 <code>git pull origin main</code> 后用 IDE 打开</li>
+    </ol>
+    <p class="muted">本 GitHub 版本内容将在你 git push 本地更新后自动同步。</p>
+  </main>
+</div>
+</body>
+</html>
